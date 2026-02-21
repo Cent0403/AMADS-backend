@@ -39,7 +39,7 @@ router.post(
         );
         permisos = (permRows as { codigo: string }[]).map((r) => r.codigo);
       } catch {
-        if (user.rol === 'administrador') permisos = ['catalogo_ver', 'catalogo_editar', 'entrada_inventario', 'proveedores_ver', 'proveedores_editar', 'usuarios_gestionar', 'permisos_asignar'];
+        if (user.rol === 'administrador') permisos = ['catalogo_ver', 'catalogo_editar', 'entrada_inventario', 'proveedores_ver', 'proveedores_editar', 'usuarios_gestionar', 'permisos_asignar', 'reportes_ver'];
       }
 
       const token = jwt.sign(
@@ -157,7 +157,7 @@ router.get('/me', requireAuth, async (req: Request, res: Response) => {
       );
       permisos = (permRows as { codigo: string }[]).map((r) => r.codigo);
     } catch {
-      if (u.rol === 'administrador') permisos = ['catalogo_ver', 'catalogo_editar', 'entrada_inventario', 'proveedores_ver', 'proveedores_editar', 'usuarios_gestionar', 'permisos_asignar'];
+      if (u.rol === 'administrador') permisos = ['catalogo_ver', 'catalogo_editar', 'entrada_inventario', 'proveedores_ver', 'proveedores_editar', 'usuarios_gestionar', 'permisos_asignar', 'reportes_ver'];
     }
     res.json({
       id: u.id,

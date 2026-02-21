@@ -40,7 +40,7 @@ export async function getPermisosForUser(userId: number): Promise<string[]> {
       [userId]
     );
     const rol = (userRows as { rol: string }[])?.[0]?.rol;
-    if (rol === 'administrador') return ['catalogo_ver', 'catalogo_editar', 'entrada_inventario', 'proveedores_ver', 'proveedores_editar', 'usuarios_gestionar', 'permisos_asignar'];
+    if (rol === 'administrador') return ['catalogo_ver', 'catalogo_editar', 'entrada_inventario', 'proveedores_ver', 'proveedores_editar', 'usuarios_gestionar', 'permisos_asignar', 'reportes_ver'];
     return [];
   } catch {
     return [];

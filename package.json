@@ -7,7 +7,8 @@
     "dev": "ts-node-dev --respawn src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "seed": "ts-node src/scripts/seed-admin.ts"
+    "seed": "ts-node src/scripts/seed-admin.ts",
+    "seed:permisos": "ts-node src/scripts/seed-permisos.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

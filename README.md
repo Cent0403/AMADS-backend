@@ -52,6 +52,9 @@ npm start
 
 # Crear usuario administrador inicial
 npm run seed
+
+# Actualizar permisos en la base de datos
+npm run seed:permisos
 ```
 
 ## API Endpoints
