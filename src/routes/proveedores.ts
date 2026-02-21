@@ -66,12 +66,42 @@ router.get('/:id/compras', proveedoresVer, param('id').isInt(), async (req: Requ
   try {
     const id = req.params?.id;
     if (id == null) return res.status(400).json({ error: 'ID inválido' });
-    const [rows] = await pool.query(
+    const [comprasRows] = await pool.query(
       `SELECT c.id, c.fecha_compra, c.total, c.observaciones, c.created_at, u.nombre as usuario_nombre
        FROM compras c LEFT JOIN usuarios u ON c.usuario_id = u.id WHERE c.proveedor_id = ? ORDER BY c.fecha_compra DESC`,
       [id]
     );
-    res.json(rows);
+    const compras = comprasRows as { id: number }[];
+    if (compras.length === 0) return res.json([]);
+    const ids = compras.map((c) => c.id);
+    const placeholders = ids.map(() => '?').join(',');
+    const [detalleRows] = await pool.query(
+      `SELECT cd.compra_id, cd.producto_id, cd.cantidad, cd.precio_unitario, cd.subtotal,
+              p.modelo, p.codigo, m.nombre as marca, cp.nombre as categoria
+       FROM compras_detalle cd
+       JOIN productos p ON cd.producto_id = p.id
+       JOIN marcas m ON p.marca_id = m.id
+       JOIN categorias_producto cp ON p.categoria_id = cp.id
+       WHERE cd.compra_id IN (${placeholders})`,
+      ids
+    );
+    const detalle = detalleRows as { compra_id: number; producto_id: number; cantidad: number; precio_unitario: number; subtotal: number; modelo: string; codigo: string; marca: string; categoria: string }[];
+    const detallePorCompra = detalle.reduce<Record<number, typeof detalle>>((acc, d) => {
+      if (!acc[d.compra_id]) acc[d.compra_id] = [];
+      acc[d.compra_id].push(d);
+      return acc;
+    }, {});
+    const resultado = compras.map((c) => ({
+      ...c,
+      items: (detallePorCompra[c.id] || []).map((d) => ({
+        producto_id: d.producto_id,
+        producto_nombre: `${d.marca} ${d.modelo} (${d.categoria})${d.codigo ? ` - ${d.codigo}` : ''}`,
+        cantidad: d.cantidad,
+        precio_unitario: d.precio_unitario,
+        subtotal: d.subtotal,
+      })),
+    }));
+    res.json(resultado);
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Error al listar historial de compras' });
