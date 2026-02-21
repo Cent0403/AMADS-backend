@@ -58,10 +58,12 @@ npm run seed
 
 ### Autenticación (`/api/auth`)
 
-| Método | Ruta   | Descripción                    |
-|--------|--------|--------------------------------|
-| POST   | /login | Iniciar sesión                 |
-| GET    | /me    | Obtener usuario actual (requiere token) |
+| Método | Ruta             | Descripción                         |
+|--------|------------------|-------------------------------------|
+| POST   | /login           | Iniciar sesión                      |
+| GET    | /me              | Obtener usuario actual (requiere token) |
+| PUT    | /perfil          | Actualizar perfil (nombre, apellido) |
+| POST   | /registro-cliente| Registro de clientes (sin token)    |
 
 ### Usuarios (`/api/usuarios`)
 
@@ -70,6 +72,21 @@ Gestión de usuarios del sistema.
 ### Productos (`/api/productos`)
 
 Catálogo de productos/llantas.
+
+| Método | Ruta      | Descripción                    |
+|--------|-----------|--------------------------------|
+| POST   | /entrada  | Registrar entrada de inventario |
+| POST   | /salida   | Registrar salida de inventario |
+| POST   | /danados  | Reportar productos dañados     |
+
+### Catálogo público (`/api/public`) - Sin autenticación
+
+| Método | Ruta        | Descripción          |
+|--------|-------------|----------------------|
+| GET    | /productos  | Listar productos     |
+| GET    | /categorias | Listar categorías    |
+| GET    | /tipos      | Listar tipos         |
+| GET    | /marcas     | Listar marcas        |
 
 ### Marcas (`/api/marcas`)
 

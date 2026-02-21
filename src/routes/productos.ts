@@ -53,10 +53,11 @@ router.get(
   requirePermission('catalogo_ver'),
   query('categoria_id').optional().isInt(),
   query('tipo_id').optional().isInt(),
+  query('marca_id').optional().isInt(),
   query('activo').optional().isIn(['0', '1']),
   async (req: Request, res: Response) => {
     try {
-      const { categoria_id, tipo_id, activo } = req.query;
+      const { categoria_id, tipo_id, marca_id, activo } = req.query;
       let sql = `SELECT p.*, m.nombre as marca_nombre, cp.nombre as categoria_nombre, tp.nombre as tipo_nombre
                  FROM productos p
                  JOIN marcas m ON p.marca_id = m.id
@@ -65,6 +66,7 @@ router.get(
       const params: any[] = [];
       if (categoria_id) { sql += ' AND p.categoria_id = ?'; params.push(categoria_id); }
       if (tipo_id) { sql += ' AND p.tipo_producto_id = ?'; params.push(tipo_id); }
+      if (marca_id) { sql += ' AND p.marca_id = ?'; params.push(marca_id); }
       if (activo !== undefined) { sql += ' AND p.activo = ?'; params.push(Number(activo)); }
       sql += ' ORDER BY p.id DESC';
       const [rows] = await pool.query(sql, params);
@@ -224,6 +226,89 @@ router.post(
     } catch (e) {
       console.error(e);
       res.status(500).json({ error: 'Error al registrar entrada' });
+    }
+  }
+);
+
+router.post(
+  '/salida',
+  requireAuth,
+  requirePermission('entrada_inventario'),
+  [
+    body('producto_id').isInt({ min: 1 }),
+    body('cantidad').isInt({ min: 1 }).withMessage('La cantidad debe ser mayor a cero'),
+    body('motivo').optional().trim(),
+  ],
+  async (req: Request, res: Response) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+      const user = (req as Request & { user?: { userId: number } }).user;
+      const { producto_id, cantidad, motivo } = req.body;
+      if (cantidad <= 0) return res.status(400).json({ error: 'La cantidad debe ser mayor a cero' });
+      if (!user) return res.status(401).json({ error: 'No autorizado' });
+
+      const [rowsProd] = await pool.query('SELECT stock_actual FROM productos WHERE id = ?', [producto_id]);
+      const prod = (rowsProd as any[])[0];
+      if (!prod) return res.status(404).json({ error: 'Producto no encontrado' });
+      const stockActual = Number(prod.stock_actual) || 0;
+      if (cantidad > stockActual) {
+        return res.status(400).json({ error: `La cantidad no puede superar el stock disponible (${stockActual})` });
+      }
+
+      await pool.query(
+        'INSERT INTO movimientos_inventario (producto_id, tipo_movimiento, cantidad, usuario_id, observaciones) VALUES (?, ?, ?, ?, ?)',
+        [producto_id, 'salida', -cantidad, user.userId, motivo || null]
+      );
+      await pool.query('UPDATE productos SET stock_actual = stock_actual - ? WHERE id = ?', [cantidad, producto_id]);
+
+      const [p] = await pool.query('SELECT stock_actual FROM productos WHERE id = ?', [producto_id]);
+      res.status(201).json({ message: 'Salida registrada', stock_actual: (p as any[])[0]?.stock_actual });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: 'Error al registrar salida' });
+    }
+  }
+);
+
+router.post(
+  '/danados',
+  requireAuth,
+  requirePermission('entrada_inventario'),
+  [
+    body('producto_id').isInt({ min: 1 }),
+    body('cantidad').isInt({ min: 1 }).withMessage('La cantidad debe ser mayor a cero'),
+    body('motivo').optional().trim(),
+  ],
+  async (req: Request, res: Response) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+      const user = (req as Request & { user?: { userId: number } }).user;
+      const { producto_id, cantidad, motivo } = req.body;
+      if (cantidad <= 0) return res.status(400).json({ error: 'La cantidad debe ser mayor a cero' });
+      if (!user) return res.status(401).json({ error: 'No autorizado' });
+
+      const [rowsProd] = await pool.query('SELECT stock_actual FROM productos WHERE id = ?', [producto_id]);
+      const prod = (rowsProd as any[])[0];
+      if (!prod) return res.status(404).json({ error: 'Producto no encontrado' });
+      const stockActual = Number(prod.stock_actual) || 0;
+      if (cantidad > stockActual) {
+        return res.status(400).json({ error: `La cantidad no puede superar el stock disponible (${stockActual})` });
+      }
+
+      await pool.query(
+        'INSERT INTO movimientos_inventario (producto_id, tipo_movimiento, cantidad, usuario_id, observaciones) VALUES (?, ?, ?, ?, ?)',
+        [producto_id, 'danado', -cantidad, user.userId, motivo || null]
+      );
+      await pool.query('UPDATE productos SET stock_actual = stock_actual - ? WHERE id = ?', [cantidad, producto_id]);
+
+      res.json({ message: 'Producto dañado registrado' });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: 'Error al registrar producto dañado' });
     }
   }
 );

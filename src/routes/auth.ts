@@ -65,6 +65,79 @@ router.post(
   }
 );
 
+router.put(
+  '/perfil',
+  requireAuth,
+  [body('nombre').optional().trim().notEmpty(), body('apellido').optional().trim()],
+  async (req: Request, res: Response) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+      const user = (req as Request & { user?: { userId: number } }).user;
+      if (!user) return res.status(401).json({ error: 'No autorizado' });
+
+      const { nombre, apellido } = req.body;
+      const updates: string[] = [];
+      const values: any[] = [];
+      if (nombre !== undefined) { updates.push('nombre = ?'); values.push(nombre); }
+      if (apellido !== undefined) { updates.push('apellido = ?'); values.push(apellido || null); }
+      if (updates.length === 0) return res.status(400).json({ error: 'Nada que actualizar' });
+      values.push(user.userId);
+      await pool.query(`UPDATE usuarios SET ${updates.join(', ')} WHERE id = ?`, values);
+      res.json({ message: 'Perfil actualizado' });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: 'Error al actualizar perfil' });
+    }
+  }
+);
+
+router.post(
+  '/registro-cliente',
+  [
+    body('email').isEmail().normalizeEmail(),
+    body('password').isLength({ min: 6 }).withMessage('La contraseña debe tener al menos 6 caracteres'),
+    body('nombre').trim().notEmpty().withMessage('El nombre es obligatorio'),
+    body('apellido').optional().trim(),
+    body('telefono').optional().trim(),
+  ],
+  async (req: Request, res: Response) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+      const { email, password, nombre, apellido, telefono } = req.body;
+
+      const [existe] = await pool.query('SELECT id FROM usuarios WHERE email = ?', [email]);
+      if ((existe as any[]).length > 0) {
+        return res.status(400).json({ error: 'Ese correo ya está registrado' });
+      }
+
+      let [rolCliente] = await pool.query("SELECT id FROM roles WHERE nombre = 'cliente'");
+      let rolId = (rolCliente as any[])[0]?.id;
+      if (!rolId) {
+        await pool.query("INSERT INTO roles (nombre, descripcion) VALUES ('cliente', 'Cliente del sistema')");
+        const [inserted] = await pool.query("SELECT id FROM roles WHERE nombre = 'cliente'");
+        rolId = (inserted as any[])[0]?.id;
+      }
+      if (!rolId) {
+        return res.status(500).json({ error: 'Rol cliente no configurado. Contacte al administrador.' });
+      }
+
+      const hash = await bcrypt.hash(password, 10);
+      await pool.query(
+        'INSERT INTO usuarios (email, password_hash, nombre, apellido, rol_id, activo) VALUES (?, ?, ?, ?, ?, 1)',
+        [email, hash, nombre.trim(), apellido?.trim() || null, rolId]
+      );
+      res.status(201).json({ message: 'Cuenta creada correctamente' });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: 'Error al registrar' });
+    }
+  }
+);
+
 router.get('/me', requireAuth, async (req: Request, res: Response) => {
   try {
     const user = (req as Request & { user?: { userId: number } }).user;
