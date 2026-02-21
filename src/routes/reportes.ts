@@ -27,7 +27,7 @@ router.get('/vendedores', async (_req, res) => {
 /** Reporte de ventas (derivado de movimientos_inventario tipo salida) */
 router.get('/ventas', async (req: Request, res: Response) => {
   try {
-    const { desde, hasta, vendedor_id, producto_id } = req.query;
+    const { desde, hasta, vendedor_id, producto_id, marca_id } = req.query;
     let sql = `
       SELECT m.id, DATE(m.created_at) as fecha, u.nombre as vendedor_nombre,
              ABS(m.cantidad) as cantidad, p.precio_venta,
@@ -45,6 +45,7 @@ router.get('/ventas', async (req: Request, res: Response) => {
     if (hasta) { sql += ' AND DATE(m.created_at) <= ?'; params.push(hasta as string); }
     if (vendedor_id) { sql += ' AND m.usuario_id = ?'; params.push(Number(vendedor_id)); }
     if (producto_id) { sql += ' AND m.producto_id = ?'; params.push(Number(producto_id)); }
+    if (marca_id) { sql += ' AND p.marca_id = ?'; params.push(Number(marca_id)); }
     sql += ' ORDER BY m.created_at DESC';
 
     const [rows] = await pool.query(sql, params);
@@ -67,7 +68,7 @@ router.get('/ventas', async (req: Request, res: Response) => {
 /** Reporte de compras */
 router.get('/compras', async (req: Request, res: Response) => {
   try {
-    const { desde, hasta, proveedor_id, producto_id } = req.query;
+    const { desde, hasta, proveedor_id, producto_id, marca_id } = req.query;
     let sql = `
       SELECT c.id, c.fecha_compra as fecha, c.total, pr.nombre as proveedor_nombre, u.nombre as usuario_nombre
       FROM compras c
@@ -82,6 +83,10 @@ router.get('/compras', async (req: Request, res: Response) => {
     if (producto_id) {
       sql += ` AND c.id IN (SELECT compra_id FROM compras_detalle WHERE producto_id = ?)`;
       params.push(Number(producto_id));
+    }
+    if (marca_id) {
+      sql += ` AND c.id IN (SELECT cd.compra_id FROM compras_detalle cd JOIN productos p ON cd.producto_id = p.id WHERE p.marca_id = ?)`;
+      params.push(Number(marca_id));
     }
     sql += ' ORDER BY c.fecha_compra DESC';
 
