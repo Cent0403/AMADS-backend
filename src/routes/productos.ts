@@ -259,12 +259,11 @@ router.post(
 
       await pool.query(
         'INSERT INTO movimientos_inventario (producto_id, tipo_movimiento, cantidad, usuario_id, proveedor_id, observaciones) VALUES (?, ?, ?, ?, NULL, ?)',
-        [producto_id, 'salida', -cantidad, user.userId, motivo || null]
+        [producto_id, 'salida', cantidad, user.userId, motivo || null]
       );
-      await pool.query('UPDATE productos SET stock_actual = stock_actual - ? WHERE id = ?', [cantidad, producto_id]);
 
       const [p] = await pool.query('SELECT stock_actual FROM productos WHERE id = ?', [producto_id]);
-      res.status(201).json({ message: 'Salida registrada', stock_actual: (p as any[])[0]?.stock_actual });
+      res.status(201).json({ stock_actual: (p as any[])[0]?.stock_actual });
     } catch (e) {
       console.error(e);
       res.status(500).json({ error: 'Error al registrar salida' });
@@ -301,9 +300,8 @@ router.post(
 
       await pool.query(
         'INSERT INTO movimientos_inventario (producto_id, tipo_movimiento, cantidad, usuario_id, proveedor_id, observaciones) VALUES (?, ?, ?, ?, NULL, ?)',
-        [producto_id, 'danado', -cantidad, user.userId, motivo || null]
+        [producto_id, 'salida', cantidad, user.userId, motivo || null]
       );
-      await pool.query('UPDATE productos SET stock_actual = stock_actual - ? WHERE id = ?', [cantidad, producto_id]);
 
       res.json({ message: 'Producto dañado registrado' });
     } catch (e) {

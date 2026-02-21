@@ -30,15 +30,15 @@ router.get('/ventas', async (req: Request, res: Response) => {
     const { desde, hasta, vendedor_id, producto_id, marca_id } = req.query;
     let sql = `
       SELECT m.id, DATE(m.created_at) as fecha, u.nombre as vendedor_nombre,
-             ABS(m.cantidad) as cantidad, p.precio_venta,
-             ABS(m.cantidad) * p.precio_venta as total,
+             m.cantidad as cantidad, p.precio_venta,
+             m.cantidad * p.precio_venta as total,
              CONCAT(mr.nombre, ' ', p.modelo, ' (', cp.nombre, ')') as producto_nombre
       FROM movimientos_inventario m
       JOIN productos p ON m.producto_id = p.id
       JOIN marcas mr ON p.marca_id = mr.id
       JOIN categorias_producto cp ON p.categoria_id = cp.id
       LEFT JOIN usuarios u ON m.usuario_id = u.id
-      WHERE m.tipo_movimiento = 'salida' AND m.cantidad < 0
+      WHERE m.tipo_movimiento = 'salida' AND m.cantidad > 0
     `;
     const params: (string | number)[] = [];
     if (desde) { sql += ' AND DATE(m.created_at) >= ?'; params.push(desde as string); }
@@ -120,9 +120,9 @@ router.get('/utilidades', async (req: Request, res: Response) => {
     }
 
     const [ventasRows] = await pool.query(
-      `SELECT COALESCE(SUM(ABS(m.cantidad) * p.precio_venta), 0) as total
+      `SELECT COALESCE(SUM(m.cantidad * p.precio_venta), 0) as total
        FROM movimientos_inventario m JOIN productos p ON m.producto_id = p.id
-       WHERE m.tipo_movimiento = 'salida' AND m.cantidad < 0 ${whereV}`,
+       WHERE m.tipo_movimiento = 'salida' AND m.cantidad > 0 ${whereV}`,
       paramsV
     );
     const [comprasRows] = await pool.query(
