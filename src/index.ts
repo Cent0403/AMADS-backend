@@ -7,6 +7,7 @@ import productosRoutes from './routes/productos';
 import marcasRoutes from './routes/marcas';
 import proveedoresRoutes from './routes/proveedores';
 import rolesRoutes from './routes/roles';
+import reportesRoutes from './routes/reportes';
 
 dotenv.config();
 
@@ -73,6 +74,7 @@ app.get('/api/public/productos', async (req, res) => {
 });
 app.use('/api/marcas', marcasRoutes);
 app.use('/api/proveedores', proveedoresRoutes);
+app.use('/api/reportes', reportesRoutes);
 app.use('/api', rolesRoutes);
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
