@@ -258,7 +258,7 @@ router.post(
       }
 
       await pool.query(
-        'INSERT INTO movimientos_inventario (producto_id, tipo_movimiento, cantidad, usuario_id, observaciones) VALUES (?, ?, ?, ?, ?)',
+        'INSERT INTO movimientos_inventario (producto_id, tipo_movimiento, cantidad, usuario_id, proveedor_id, observaciones) VALUES (?, ?, ?, ?, NULL, ?)',
         [producto_id, 'salida', -cantidad, user.userId, motivo || null]
       );
       await pool.query('UPDATE productos SET stock_actual = stock_actual - ? WHERE id = ?', [cantidad, producto_id]);
@@ -300,7 +300,7 @@ router.post(
       }
 
       await pool.query(
-        'INSERT INTO movimientos_inventario (producto_id, tipo_movimiento, cantidad, usuario_id, observaciones) VALUES (?, ?, ?, ?, ?)',
+        'INSERT INTO movimientos_inventario (producto_id, tipo_movimiento, cantidad, usuario_id, proveedor_id, observaciones) VALUES (?, ?, ?, ?, NULL, ?)',
         [producto_id, 'danado', -cantidad, user.userId, motivo || null]
       );
       await pool.query('UPDATE productos SET stock_actual = stock_actual - ? WHERE id = ?', [cantidad, producto_id]);
