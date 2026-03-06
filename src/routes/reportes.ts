@@ -145,4 +145,57 @@ router.get('/utilidades', async (req: Request, res: Response) => {
   }
 });
 
+/** Reporte de productos dañados */
+router.get('/danados', async (req: Request, res: Response) => {
+  try {
+    const { desde, hasta, producto_id } = req.query;
+    let sql = `
+      SELECT 
+        m.id,
+        m.producto_id,
+        p.codigo as producto_codigo,
+        CONCAT(mr.nombre, ' ', p.modelo) as producto_nombre,
+        mr.nombre as marca_nombre,
+        p.modelo,
+        cp.nombre as categoria_nombre,
+        m.cantidad,
+        m.observaciones as motivo,
+        CONCAT(u.nombre, ' ', IFNULL(u.apellido, '')) as usuario_nombre,
+        DATE(m.created_at) as fecha,
+        m.created_at
+      FROM movimientos_inventario m
+      JOIN productos p ON m.producto_id = p.id
+      JOIN marcas mr ON p.marca_id = mr.id
+      JOIN categorias_producto cp ON p.categoria_id = cp.id
+      LEFT JOIN usuarios u ON m.usuario_id = u.id
+      WHERE m.tipo_movimiento = 'salida' 
+        AND m.observaciones IS NOT NULL
+        AND m.observaciones != ''
+        AND m.proveedor_id IS NULL
+    `;
+    const params: (string | number)[] = [];
+    
+    if (desde) {
+      sql += ' AND DATE(m.created_at) >= ?';
+      params.push(desde as string);
+    }
+    if (hasta) {
+      sql += ' AND DATE(m.created_at) <= ?';
+      params.push(hasta as string);
+    }
+    if (producto_id) {
+      sql += ' AND m.producto_id = ?';
+      params.push(Number(producto_id));
+    }
+    
+    sql += ' ORDER BY m.created_at DESC';
+
+    const [rows] = await pool.query(sql, params);
+    res.json(rows);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Error al generar reporte de productos dañados' });
+  }
+});
+
 export default router;
